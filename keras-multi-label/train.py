@@ -43,9 +43,9 @@ args = vars(ap.parse_args())
 # initialize the number of epochs to train for, initial learning rate,
 # batch size, and image dimensions
 # python train.py --dataset dataset --model fashion2.model --labelbin mlb.pickle
-EPOCHS = 2
-EPOCHS2 = 3
-EPOCHS3 = 4
+EPOCHS = 6
+EPOCHS2 = 1
+EPOCHS3 = 1
 INIT_LR = 1e-3 #default for Adam optimizer
 BS = 32
 IMAGE_DIMS = (96, 96, 3)
@@ -74,22 +74,20 @@ for index, imagePath in enumerate(imagePaths):
 	image = img_to_array(image)
 	
 		
-	if(index%3 == 0):
-		data.append(image)
-	if(index%3 == 1):
-		data2.append(image)
-	if(index%3 == 2):
-		data3.append(image)
+	#if(index%3 == 0):
+	data.append(image)
+	#if(index%3 == 1):
+	data2.append(image)
+	#if(index%3 == 2):
+	data3.append(image)
 
-	# extract set of class labels from the image path and update the
-	# labels list
 	l = label = imagePath.split(os.path.sep)[-2].split("_")
-	if(index%3 == 0):
-		labels.append(label)
-	if(index%3 == 1):
-		labels2.append(label)
-	if(index%3 == 2):
-		labels3.append(label)
+	#if(index%3 == 0):
+	labels.append(label)
+	#if(index%3 == 1):
+	labels2.append(label)
+	#if(index%3 == 2):
+	labels3.append(label)
 
 # scale the raw pixel intensities to the range [0, 1]
 data = np.array(data, dtype="float") / 255.0
@@ -107,8 +105,12 @@ print("[INFO] data matrix: {} images ({:.2f}MB)".format(
 # binarize the labels using scikit-learn's special multi-label
 # binarizer implementation
 print("[INFO] class labels:")
+
+
 mlb = MultiLabelBinarizer()
 labels = mlb.fit_transform(labels)
+
+
 labels2 = mlb.fit_transform(labels2)
 labels3 = mlb.fit_transform(labels3)
 
@@ -124,13 +126,13 @@ for (i, label) in enumerate(mlb.classes_):
 # the data for training and the remaining 20% for testing
 (trainX, testX, trainY, testY) = train_test_split(data, labels, test_size=0.2, random_state=42)
 (trainX2, testX2, trainY2, testY2) = train_test_split(data2, labels2, test_size=0.2, random_state=42)
-(trainX3, testX3, trainY3, testY3) = train_test_split(data3, labels3, test_size=0.2, random_state=42)
 
 # print(trainX, testX, trainY, testY)
 # print(trainX2, testX2, trainY2, testY2)
 # print(trainX3, testX3, trainY3, testY3)
 
-# construct the image generator for data augmentation
+(trainX3, testX3, trainY3, testY3) = train_test_split(data3, labels3, test_size=0.2, random_state=42)
+
 aug = ImageDataGenerator(rotation_range=25, width_shift_range=0.1,
 	height_shift_range=0.1, shear_range=0.2, zoom_range=0.2,
 	horizontal_flip=True, fill_mode="nearest")
@@ -152,17 +154,15 @@ model3 = Model3.build(
 	finalAct="sigmoid")
 
 # initialize the optimizer (SGD is sufficient)
-opt = Adam(lr=INIT_LR, decay=INIT_LR / EPOCHS)
 opt2 = Adam(lr=INIT_LR, decay=INIT_LR / EPOCHS2)
 opt3 = Adam(lr=INIT_LR, decay=INIT_LR / EPOCHS3)
 
-# compile the model using binary cross-entropy rather than
-# categorical cross-entropy -- this may seem counterintuitive for
-# multi-label classification, but keep in mind that the goal here
-# is to treat each output label as an independent Bernoulli
-# distribution
+opt = Adam(lr=INIT_LR, decay=INIT_LR / EPOCHS)
 model.compile(loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"])
+
+
 model2.compile(loss="binary_crossentropy", optimizer=opt2, metrics=["accuracy"])
+
 model3.compile(loss="binary_crossentropy", optimizer=opt3, metrics=["accuracy"])
 
 # train the network
@@ -253,7 +253,7 @@ for (label, p) in zip(mlb.classes_, proba3):
 
 plt.style.use("ggplot")
 plt.figure()
-N = EPOCHS+1
+N = EPOCHS
 plt.plot(np.arange(0, N), H.history["loss"], label="train_loss")
 plt.plot(np.arange(0, N), H.history["val_loss"], label="val_loss")
 plt.plot(np.arange(0, N), H.history["acc"], label="train_acc")
@@ -266,7 +266,7 @@ plt.savefig("1"+args["plot"])
 
 plt.style.use("ggplot")
 plt.figure()
-N = EPOCHS2+1
+N = EPOCHS2
 plt.plot(np.arange(0, N), H2.history["loss"], label="train_loss")
 plt.plot(np.arange(0, N), H2.history["val_loss"], label="val_loss")
 plt.plot(np.arange(0, N), H2.history["acc"], label="train_acc")
@@ -279,7 +279,7 @@ plt.savefig("2"+args["plot"])
 
 plt.style.use("ggplot")
 plt.figure()
-N = EPOCHS3+1
+N = EPOCHS3
 plt.plot(np.arange(0, N), H3.history["loss"], label="train_loss")
 plt.plot(np.arange(0, N), H3.history["val_loss"], label="val_loss")
 plt.plot(np.arange(0, N), H3.history["acc"], label="train_acc")
@@ -289,3 +289,6 @@ plt.xlabel("Epoch #")
 plt.ylabel("Loss/Accuracy")
 plt.legend(loc="lower left")
 plt.savefig("3"+args["plot"])
+
+
+#sudo docker run --name tensorflow -v ${PWD}/notebook:/notebook -p 8888:8888 -p 6006:6006 drunkar/anaconda-tensorflow-gpu /bin/bash
